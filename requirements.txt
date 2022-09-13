@@ -1,3 +1,17 @@
+# --------- yolo --------- #
+tqdm>=4.64.0
+opencv-python>=4.1.1
+numpy>=1.18.5
+Pillow>=7.1.2
+PyYAML>=5.3.1
+requests>=2.23.0
+scipy>=1.4.1
+
+# --------- plotting --------- #
+pandas>=1.1.4
+seaborn>=0.11.0
+matplotlib>=3.2.2
+
 # --------- pytorch --------- #
 torch>=1.10.0
 torchvision>=0.11.0
@@ -10,7 +24,7 @@ hydra-colorlog==1.2.0
 hydra-optuna-sweeper==1.2.0
 
 # --------- loggers --------- #
-# wandb
+wandb
 # neptune-client
 # mlflow
 # comet-ml
