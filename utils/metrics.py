@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
-from yolo_utils import TryExcept, threaded
+from utils import TryExcept, threaded
 
 
 def fitness(x):
