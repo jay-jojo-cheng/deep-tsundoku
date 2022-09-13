@@ -20,12 +20,12 @@ import torch.nn as nn
 from PIL import Image
 from torch.cuda import amp
 
-from yolo_utils.dataloaders import exif_transpose, letterbox
-from yolo_utils.general import (LOGGER, ROOT, Profile, check_requirements, check_suffix, check_version, colorstr,
+from utils.dataloaders import exif_transpose, letterbox
+from utils.general import (LOGGER, ROOT, Profile, check_requirements, check_suffix, check_version, colorstr,
                            increment_path, make_divisible, non_max_suppression, scale_coords, xywh2xyxy, xyxy2xywh,
                            yaml_load)
-from yolo_utils.plots import Annotator, colors, save_one_box
-from yolo_utils.torch_utils import copy_attr, smart_inference_mode
+from utils.plots import Annotator, colors, save_one_box
+from utils.torch_utils import copy_attr, smart_inference_mode
 
 
 def autopad(k, p=None, d=1):  # kernel, padding, dilation
@@ -321,7 +321,7 @@ class DetectMultiBackend(nn.Module):
         #   TensorFlow Lite:                *.tflite
         #   TensorFlow Edge TPU:            *_edgetpu.tflite
         #   PaddlePaddle:                   *_paddle_model
-        from yolo_models.experimental import attempt_download, attempt_load  # scoped to avoid circular import
+        from models.experimental import attempt_download, attempt_load  # scoped to avoid circular import
 
         super().__init__()
         w = str(weights[0] if isinstance(weights, list) else weights)
