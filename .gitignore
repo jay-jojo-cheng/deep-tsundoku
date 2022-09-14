@@ -34,6 +34,9 @@ data/images/*
 !data/images/zidane.jpg
 !data/images/bus.jpg
 !data/*.sh
+!data/images/book_spine_sample.jpg
+!data/images/Good-Book-Spines.jpg
+!data/images/single_book.jpg
 
 results*.csv
 
