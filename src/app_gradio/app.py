@@ -4,6 +4,7 @@ from typing import Callable, List
 
 import gradio as gr
 from PIL.Image import Image
+from gradio import CSVLogger
 
 
 def main():
@@ -22,15 +23,50 @@ def make_frontend(fn: Callable[[Image], str]):
         if os.path.splitext(f)[1] in [".jpg", ".jpeg", ".png"]
     ]
 
-    frontend = gr.Interface(
-        fn=fn,
-        inputs=gr.Image(type="pil", label="Bookshelf"),
-        outputs=gr.Textbox(interactive=True, label="Recognized books"),
-        title="Bookshelf recognizer 📚",
-        examples=example_images,
-    )
+    with gr.Blocks() as frontend:
+        #
+        # TODO: Add example images
+        # TODO: Change layout https://gradio.app/controlling_layout/
+        image = gr.Image(type="pil", label="Bookshelf")
+        run_button = gr.Button("Find books")
+        output = gr.Textbox(label="Recognized books")
+
+        wrong_prediction_button = gr.Button("Flag wrong prediction 🐞")
+        user_feedback = gr.Textbox(interactive=True, label="User feedback")
+
+        # Log user feedback
+        flag_button = gr.Button("Correct predictions")
+        flagging_callback = CSVLogger()
+        flag_components = [image, output, user_feedback]
+        flagging_callback.setup(flag_components, "user_feedback")
+        flag_method = FlagMethod(flagging_callback)
+        flag_button.click(
+            flag_method,
+            inputs=flag_components,
+            outputs=[],
+            _preprocess=False,
+            queue=False,
+        )
+
+        # Functionality of buttons
+        run_button.click(fn, inputs=image, outputs=output)
+        wrong_prediction_button.click(
+            lambda model_output: model_output, inputs=output, outputs=user_feedback
+        )
 
     return frontend
+
+
+class FlagMethod:
+    """Copied from gradio's `interface.py` script that mimics the flagging callback"""
+
+    def __init__(self, flagging_callback, flag_option=None):
+        self.flagging_callback = flagging_callback
+        self.flag_option = flag_option
+        self.__name__ = "Flag"
+
+    def __call__(self, *flag_data):
+        self.flagging_callback.flag(flag_data, flag_option=self.flag_option)
 
 
 class ModelInference:
