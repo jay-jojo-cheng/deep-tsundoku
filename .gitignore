@@ -37,6 +37,11 @@ data/images/*
 !data/images/book_spine_sample.jpg
 !data/images/Good-Book-Spines.jpg
 !data/images/single_book.jpg
+!segmentation/images
+!segmentation/images/IMG_1770.jpg
+!segmentation/images/IMG_1778_0.jpg
+!segmentation/cropped_images
+!segmentation/cropped_images/IMG_1778_0_18.png
 
 results*.csv
 
