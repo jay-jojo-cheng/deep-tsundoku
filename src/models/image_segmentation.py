@@ -8,16 +8,17 @@ import math
 
 import cv2
 import numpy as np
+from PIL import Image
 
 
-def crop_book_spines_in_image(pil_img):
+def crop_book_spines_in_image(pil_img, output_img_type: str = "pil"):
     """
     Identifies the book spines in the input image
     and returns list of such book spine images.
     """
     cv2_img = pil_image_to_opencv_image(pil_img)
     points = detect_spines(cv2_img)
-    return get_cropped_images(cv2_img, points)
+    return get_cropped_images(cv2_img, points, output_img_type=output_img_type)
 
 
 def detect_spines(img):
@@ -58,12 +59,18 @@ def detect_spines(img):
     return final_points
 
 
-def get_cropped_images(image, points):
+def get_cropped_images(image, points, output_img_type: str = "pil"):
     """
     Takes a spine line drawn image and
     returns a list of opencv images split
     from the drawn lines
     """
+    if output_img_type not in ["pil", "opencv"]:
+        raise ValueError(
+            f"`output_img_type` {output_img_type} not supported! "
+            f"Types supported: 'pil' and 'opencv'"
+        )
+
     image = image.copy()
     y_max, _, _ = image.shape
     last_x1 = 0
@@ -87,6 +94,8 @@ def get_cropped_images(image, points):
 
         # do bit-op
         dst = cv2.bitwise_and(cropped, cropped, mask=mask)
+        if output_img_type == "pil":
+            dst = opencv_image_to_pil_image(dst)
         cropped_images.append(dst)
 
         last_x1 = x1
@@ -190,3 +199,13 @@ def pil_image_to_opencv_image(pil_image):
     img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
 
     return img
+
+
+def opencv_image_to_pil_image(opencv_image):
+    """
+    Converts image from Opencv Image to PIL Image
+    """
+    opencv_image = cv2.cvtColor(opencv_image, cv2.COLOR_BGR2RGB)
+    pil_image = Image.fromarray(opencv_image)
+
+    return pil_image
