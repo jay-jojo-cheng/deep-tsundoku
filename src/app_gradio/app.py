@@ -101,19 +101,19 @@ class ImageReader:
     """
     Runs a Machine Learning model that reads the text in an image
     """
-    def __init__(self):
+    def __init__(self, author=True):
         """Initializes processing and inference models."""
-        self.processor = DonutProcessor.from_pretrained("jay-jojo-cheng/donut-cover")
-        self.model = VisionEncoderDecoderModel.from_pretrained(
-            "jay-jojo-cheng/donut-cover"
-        )
+        self.author = author
+        self.hf_modelhub_name = "jay-jojo-cheng/donut-cover-author" if self.author else "jay-jojo-cheng/donut-cover"
+        self.processor = DonutProcessor.from_pretrained(self.hf_modelhub_name)
+        self.model = VisionEncoderDecoderModel.from_pretrained(self.hf_modelhub_name)
+        self.task_prompt = "<s_cover>" if self.author else "<s_cord-v2>"
         
     def predict(self, image) -> str:
         pixel_values = self.processor(image, return_tensors="pt").pixel_values
 
-        task_prompt = "<s_cord-v2>"
         decoder_input_ids = self.processor.tokenizer(
-            task_prompt, add_special_tokens=False, return_tensors="pt"
+            self.task_prompt, add_special_tokens=False, return_tensors="pt"
         )["input_ids"]
 
         device = "cuda" if torch.cuda.is_available() else "cpu"
