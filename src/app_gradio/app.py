@@ -1,7 +1,7 @@
 import os
 import re
 from pathlib import Path
-from typing import Callable, List
+from typing import Callable
 
 import gradio as gr
 import torch
@@ -29,7 +29,6 @@ def make_frontend(fn: Callable[[Image], str]):
     ]
 
     with gr.Blocks() as frontend:
-        #
         # TODO: Add example images
         # TODO: Change layout https://gradio.app/controlling_layout/
         image = gr.Image(type="pil", label="Bookshelf")
@@ -102,16 +101,14 @@ class ImageReader:
     """
     Runs a Machine Learning model that reads the text in an image
     """
-
     def __init__(self):
         """Initializes processing and inference models."""
         self.processor = DonutProcessor.from_pretrained("jay-jojo-cheng/donut-cover")
         self.model = VisionEncoderDecoderModel.from_pretrained(
             "jay-jojo-cheng/donut-cover"
         )
-
+        
     def predict(self, image) -> str:
-
         pixel_values = self.processor(image, return_tensors="pt").pixel_values
 
         task_prompt = "<s_cord-v2>"
@@ -145,6 +142,7 @@ class ImageReader:
         sequence = re.sub(
             r"<.*?>", "", sequence, count=1
         ).strip()  # remove first task start token
+        print(f"Prediction: {sequence}")
         return sequence
 
 
