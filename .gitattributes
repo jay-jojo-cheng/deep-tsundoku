@@ -1,1 +1,2 @@
 data/asin2emb filter=lfs diff=lfs merge=lfs -text
+data/books_emb_8_tidy.csv filter=lfs diff=lfs merge=lfs -text
