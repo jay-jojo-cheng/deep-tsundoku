@@ -42,6 +42,7 @@ data/images/*
 !segmentation/images/IMG_1778_0.jpg
 !segmentation/cropped_images
 !segmentation/cropped_images/IMG_1778_0_18.png
+!data/asin2emb
 
 results*.csv
 
