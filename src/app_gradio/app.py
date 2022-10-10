@@ -48,7 +48,7 @@ def make_frontend(fn: Callable[[Image], str]):
             flag_method,
             inputs=flag_components,
             outputs=[],
-            _preprocess=False,
+            preprocess=False,
             queue=False,
         )
 
