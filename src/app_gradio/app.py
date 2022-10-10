@@ -9,9 +9,11 @@ from PIL.Image import Image
 from gradio import CSVLogger
 from transformers import DonutProcessor, VisionEncoderDecoderModel
 
+from src.models.image_segmentation import crop_book_spines_in_image
+
 
 def main():
-    model_inference = ModelInference()
+    model_inference = BookSpineReader()
     frontend = make_frontend(model_inference.predict)
     frontend.launch()
 
@@ -70,22 +72,43 @@ class FlagMethod:
         self.flagging_callback.flag(flag_data, flag_option=self.flag_option)
 
 
-class ModelInference:
+class BookSpineReader:
     """
-    Runs a machine learning model at inference time. For now, it is simply
-    a dummy class that returns the same dummy prediction irrespectively
-    of the input.
+    Crops the image into the book spines and runs each image through an ML model
+    that identifies the text in the image.
     """
 
+    def __init__(self):
+        self.image_reader_model = ImageReader()
+
+    def predict(self, image) -> str:
+        # Identify book spines in images
+        book_spines = crop_book_spines_in_image(image, output_img_type="pil")
+        # Read text in each book spine
+        output = [self.image_reader_model.predict(img) for img in book_spines]
+        return self._post_process_output(output)
+
+    @staticmethod
+    def _post_process_output(model_output: List[str]) -> str:
+        model_output_clean = [s for s in model_output if len(s) > 0]
+        if len(model_output_clean) == 0:
+            return "No book found in the image 😞 Make sure the books are stacked vertically"
+        else:
+            return "\n".join(model_output_clean)
+
+
+class ImageReader:
+    """
+    Runs a Machine Learning model that reads the text in an image
+    """
     def __init__(self):
         """Initializes processing and inference models."""
         self.processor = DonutProcessor.from_pretrained("jay-jojo-cheng/donut-cover")
         self.model = VisionEncoderDecoderModel.from_pretrained(
             "jay-jojo-cheng/donut-cover"
         )
-
-    def predict(self, image):
-
+        
+    def predict(self, image) -> str:
         pixel_values = self.processor(image, return_tensors="pt").pixel_values
 
         task_prompt = "<s_cord-v2>"
