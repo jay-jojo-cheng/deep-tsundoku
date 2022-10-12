@@ -94,6 +94,7 @@ def get_cropped_images(image, points, output_img_type: str = "pil"):
 
         # do bit-op
         dst = cv2.bitwise_and(cropped, cropped, mask=mask)
+        dst = cv2.rotate(dst, cv2.ROTATE_90_COUNTERCLOCKWISE)
         if output_img_type == "pil":
             dst = opencv_image_to_pil_image(dst)
         cropped_images.append(dst)
