@@ -7,7 +7,7 @@ import gradio as gr
 import torch
 from PIL.Image import Image
 from gradio import CSVLogger
-from transformers import DonutProcessor, VisionEncoderDecoderModel
+from transformers import DonutProcessor
 
 from src.models.image_segmentation import crop_book_spines_in_image
 
@@ -97,17 +97,26 @@ class BookSpineReader:
             return "\n".join(model_output_clean)
 
 
+STAGED_MODEL_DIRNAME = Path(__file__).resolve().parent.parent / "spinereader" / "artifacts"
+MODEL_FILE = "traced_donut_model.pt"
+
 class ImageReader:
     """
     Runs a Machine Learning model that reads the text in an image
     """
-    def __init__(self, author=True):
+    def __init__(self, model_path=None, author=True):
         """Initializes processing and inference models."""
         self.author = author
-        self.hf_modelhub_name = "jay-jojo-cheng/donut-cover-author" if self.author else "jay-jojo-cheng/donut-cover"
+        # self.hf_modelhub_name = "jay-jojo-cheng/donut-cover-author" if self.author else "jay-jojo-cheng/donut-cover"
+        self.hf_modelhub_name = "jay-jojo-cheng/donut-cover-author" # the traced version is the title-author version
         self.processor = DonutProcessor.from_pretrained(self.hf_modelhub_name)
-        self.model = VisionEncoderDecoderModel.from_pretrained(self.hf_modelhub_name)
-        self.task_prompt = "<s_cover>" if self.author else "<s_cord-v2>"
+        if model_path is None:
+            model_path = STAGED_MODEL_DIRNAME / MODEL_FILE
+        # self.model = VisionEncoderDecoderModel.from_pretrained(self.hf_modelhub_name)
+        self.model = torch.jit.load(model_path)
+        
+        # self.task_prompt = "<s_cover>" if self.author else "<s_cord-v2>"
+        self.task_prompt = "<s_cover>" # note the traced model is the title-author version
         
     def predict(self, image) -> str:
         pixel_values = self.processor(image, return_tensors="pt").pixel_values
@@ -116,26 +125,20 @@ class ImageReader:
             self.task_prompt, add_special_tokens=False, return_tensors="pt"
         )["input_ids"]
 
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.model.to(device)
+        # device = "cuda" if torch.cuda.is_available() else "cpu"
+        device = "cpu" # note that the torchscript was traced for CPU.
+        # If we want to do inference on GPU, we need a GPU traced version
 
-        outputs = self.model.generate(
-            pixel_values.to(device),
-            decoder_input_ids=decoder_input_ids.to(device),
-            max_length=self.model.decoder.config.max_position_embeddings,
-            early_stopping=True,
-            pad_token_id=self.processor.tokenizer.pad_token_id,
-            eos_token_id=self.processor.tokenizer.eos_token_id,
-            use_cache=True,
-            num_beams=1,
-            bad_words_ids=[[self.processor.tokenizer.unk_token_id]],
-            return_dict_in_generate=True,
-            output_scores=True,
-        )
+        # self.model.to(device)
+
+        outputs = self.model.generate(pixel_values, decoder_input_ids
+            # pixel_values.to(device),
+            # decoder_input_ids=decoder_input_ids.to(device)
+            )
         return self._post_process_output(outputs)
 
     def _post_process_output(self, outputs) -> str:
-        sequence = self.processor.batch_decode(outputs.sequences)[0]
+        sequence = self.processor.batch_decode(outputs)[0]
         sequence = sequence.replace(self.processor.tokenizer.eos_token, "").replace(
             self.processor.tokenizer.pad_token, ""
         )
