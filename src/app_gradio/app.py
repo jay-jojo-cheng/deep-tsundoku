@@ -14,7 +14,7 @@ from src.models.image_segmentation import crop_book_spines_in_image
 STAGED_MODEL_DIRNAME = (
     Path(__file__).resolve().parent.parent / "spinereader" / "artifacts"
 )
-MODEL_FILE = "traced_donut_model.pt"
+MODEL_FILE = "traced_donut_model_title_only.pt"
 
 
 def main():
