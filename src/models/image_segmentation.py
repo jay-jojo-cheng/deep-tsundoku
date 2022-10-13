@@ -5,13 +5,21 @@ https://github.com/LakshyaKhatri/Bookshelf-Reader-API
 """
 
 import math
+import os
+from pathlib import Path
 
 import cv2
 import numpy as np
 from PIL import Image
 
+CROPPED_IMAGES_DIRNAME = (
+    Path(__file__).resolve().parent.parent.parent / "cropped_images"
+)
 
-def crop_book_spines_in_image(pil_img, output_img_type: str = "pil"):
+
+def crop_book_spines_in_image(
+    pil_img, output_img_type: str = "pil", save_images: bool = False
+):
     """
     Identifies the book spines in the input image
     and returns list of such book spine images.
@@ -20,7 +28,16 @@ def crop_book_spines_in_image(pil_img, output_img_type: str = "pil"):
     # resizing images to control cropping behavior
     cv2_img = resize_img(cv2_img)
     points = detect_spines(cv2_img)
-    return get_cropped_images(cv2_img, points, output_img_type=output_img_type)
+    cropped_images = get_cropped_images(
+        cv2_img, points, output_img_type=output_img_type
+    )
+    if save_images == True:
+        Path(CROPPED_IMAGES_DIRNAME).mkdir(parents=True, exist_ok=True)
+        for i, img in enumerate(cropped_images):
+            image_to_save_path = f"{CROPPED_IMAGES_DIRNAME}\image_{i}.png"
+            cv2.imwrite(image_to_save_path, pil_image_to_opencv_image(img))
+
+    return cropped_images
 
 
 def detect_spines(img):
@@ -113,7 +130,7 @@ def get_cropped_images(image, points, output_img_type: str = "pil"):
         last_x1 = x1
         last_x2 = x2
 
-    return cropped_images
+    return cropped_images[1:]
 
 
 def get_points_in_x_and_y(hough_lines, max_x, max_y):
