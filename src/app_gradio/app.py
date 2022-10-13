@@ -11,6 +11,11 @@ from transformers import DonutProcessor
 
 from src.models.image_segmentation import crop_book_spines_in_image
 
+STAGED_MODEL_DIRNAME = (
+    Path(__file__).resolve().parent.parent / "spinereader" / "artifacts"
+)
+MODEL_FILE = "traced_donut_model.pt"
+
 
 def main():
     model_inference = BookSpineReader()
@@ -107,12 +112,6 @@ class BookSpineReader:
             return "No book found in the image 😞 Make sure the books are stacked vertically"
         else:
             return "\n".join(model_output_clean)
-
-
-STAGED_MODEL_DIRNAME = (
-    Path(__file__).resolve().parent.parent / "spinereader" / "artifacts"
-)
-MODEL_FILE = "traced_donut_model.pt"
 
 
 class ImageReader:
