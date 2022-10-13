@@ -49,6 +49,7 @@ def make_frontend(fn: Callable[[Image], str]):
             output = gr.Textbox(label="Recognized books")
 
         run_button = gr.Button("Find books")
+        run_button.click(fn, inputs=image, outputs=output)
 
         gr.Markdown("### Flag  wrong prediction 🐞")
         gr.Markdown(
@@ -69,9 +70,6 @@ def make_frontend(fn: Callable[[Image], str]):
             preprocess=False,
             queue=False,
         )
-
-        # Functionality of the run button
-        run_button.click(fn, inputs=image, outputs=[output, user_feedback])
 
     return frontend
 
