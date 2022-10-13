@@ -46,6 +46,7 @@ class TextToAsin:
     def title_to_asin(self, query_strings, k=1) -> str:
         query_embeddings = [self.model.encode([s]) for s in query_strings]
         similar_item_idx = self.return_k_similar(query_embeddings, k)
-        return self.df.iloc[similar_item_idx, ][['asin', 'title']]
+        # df.iloc[similar_item_idx, ][['asin', 'processed_titles']] # look at titles for debugging
+        return df.iloc[similar_item_idx, ]['asin'].tolist()
 
 
