@@ -29,13 +29,26 @@ def make_frontend(fn: Callable[[Image], str]):
     ]
 
     with gr.Blocks() as frontend:
-        # TODO: Add example images
-        # TODO: Change layout https://gradio.app/controlling_layout/
-        image = gr.Image(type="pil", label="Bookshelf")
+        gr.Markdown("# 📚 Deep Tsundoku: bookshelf app for book lovers")
+        gr.Markdown(
+            "Upload images of your bookshelf to get the list of books it contains"
+        )
+
+        with gr.Row():
+            with gr.Column():
+                image = gr.Image(type="pil", label="Bookshelf")
+                gr.Examples(
+                    examples=example_images,
+                    inputs=image,
+                )
+            output = gr.Textbox(label="Recognized books")
+
         run_button = gr.Button("Find books")
-        # gr.Examples(examples=example_images, inputs=[gr.Image()])
-        output = gr.Textbox(label="Recognized books")
-        wrong_prediction_button = gr.Button("Flag wrong prediction 🐞")
+
+        gr.Markdown("### Flag  wrong prediction 🐞")
+        gr.Markdown(
+            "Are the books incorrect? Help us improve our model by correcting our mistakes!"
+        )
         user_feedback = gr.Textbox(interactive=True, label="User feedback")
 
         # Log user feedback
@@ -52,11 +65,9 @@ def make_frontend(fn: Callable[[Image], str]):
             queue=False,
         )
 
-        # Functionality of buttons
-        run_button.click(fn, inputs=image, outputs=output)
-        wrong_prediction_button.click(
-            lambda model_output: model_output, inputs=output, outputs=user_feedback
-        )
+        # Functionality of the run button
+        run_button.click(fn, inputs=image, outputs=[output, user_feedback])
+
     return frontend
 
 
@@ -84,6 +95,7 @@ class BookSpineReader:
     def predict(self, image) -> str:
         # Identify book spines in images
         book_spines = crop_book_spines_in_image(image, output_img_type="pil")
+        print(f"Found {len(book_spines)} book spines")
         # Read text in each book spine
         output = [self.image_reader_model.predict(img) for img in book_spines]
         return self._post_process_output(output)
@@ -97,27 +109,33 @@ class BookSpineReader:
             return "\n".join(model_output_clean)
 
 
-STAGED_MODEL_DIRNAME = Path(__file__).resolve().parent.parent / "spinereader" / "artifacts"
+STAGED_MODEL_DIRNAME = (
+    Path(__file__).resolve().parent.parent / "spinereader" / "artifacts"
+)
 MODEL_FILE = "traced_donut_model.pt"
+
 
 class ImageReader:
     """
     Runs a Machine Learning model that reads the text in an image
     """
+
     def __init__(self, model_path=None, author=True):
         """Initializes processing and inference models."""
         self.author = author
         # self.hf_modelhub_name = "jay-jojo-cheng/donut-cover-author" if self.author else "jay-jojo-cheng/donut-cover"
-        self.hf_modelhub_name = "jay-jojo-cheng/donut-cover-author" # the traced version is the title-author version
+        self.hf_modelhub_name = "jay-jojo-cheng/donut-cover-author"  # the traced version is the title-author version
         self.processor = DonutProcessor.from_pretrained(self.hf_modelhub_name)
         if model_path is None:
             model_path = STAGED_MODEL_DIRNAME / MODEL_FILE
         # self.model = VisionEncoderDecoderModel.from_pretrained(self.hf_modelhub_name)
         self.model = torch.jit.load(model_path)
-        
+
         # self.task_prompt = "<s_cover>" if self.author else "<s_cord-v2>"
-        self.task_prompt = "<s_cover>" # note the traced model is the title-author version
-        
+        self.task_prompt = (
+            "<s_cover>"  # note the traced model is the title-author version
+        )
+
     def predict(self, image) -> str:
         pixel_values = self.processor(image, return_tensors="pt").pixel_values
 
@@ -126,15 +144,24 @@ class ImageReader:
         )["input_ids"]
 
         # device = "cuda" if torch.cuda.is_available() else "cpu"
-        device = "cpu" # note that the torchscript was traced for CPU.
+        device = "cpu"  # note that the torchscript was traced for CPU.
         # If we want to do inference on GPU, we need a GPU traced version
-
         # self.model.to(device)
 
-        outputs = self.model.generate(pixel_values, decoder_input_ids
-            # pixel_values.to(device),
-            # decoder_input_ids=decoder_input_ids.to(device)
-            )
+        outputs = self.model.generate(
+            pixel_values,
+            decoder_input_ids=decoder_input_ids.to(device),
+            max_length=100,
+            early_stopping=True,
+            pad_token_id=self.processor.tokenizer.pad_token_id,
+            eos_token_id=self.processor.tokenizer.eos_token_id,
+            use_cache=True,
+            num_beams=1,
+            bad_words_ids=[[self.processor.tokenizer.unk_token_id]],
+            return_dict_in_generate=True,
+            output_scores=True,
+        )
+
         return self._post_process_output(outputs)
 
     def _post_process_output(self, outputs) -> str:
