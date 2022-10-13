@@ -121,7 +121,7 @@ class ImageReader:
         """Initializes processing and inference models."""
         self.author = author
         # self.hf_modelhub_name = "jay-jojo-cheng/donut-cover-author" if self.author else "jay-jojo-cheng/donut-cover"
-        self.hf_modelhub_name = "jay-jojo-cheng/donut-cover-author"  # the traced version is the title-author version
+        self.hf_modelhub_name = "jay-jojo-cheng/donut-cover"  # we are now original title-only model 22.10.12
         self.processor = DonutProcessor.from_pretrained(self.hf_modelhub_name)
         if model_path is None:
             model_path = STAGED_MODEL_DIRNAME / MODEL_FILE
@@ -130,7 +130,7 @@ class ImageReader:
 
         # self.task_prompt = "<s_cover>" if self.author else "<s_cord-v2>"
         self.task_prompt = (
-            "<s_cover>"  # note the traced model is the title-author version
+            "<s_cover>"  # both title-only and title-author use this prompt
         )
 
     def predict(self, image) -> str:
