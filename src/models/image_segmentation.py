@@ -17,6 +17,8 @@ def crop_book_spines_in_image(pil_img, output_img_type: str = "pil"):
     and returns list of such book spine images.
     """
     cv2_img = pil_image_to_opencv_image(pil_img)
+    # resizing images to control cropping behavior
+    cv2_img = resize_img(cv2_img)
     points = detect_spines(cv2_img)
     return get_cropped_images(cv2_img, points, output_img_type=output_img_type)
 
@@ -190,6 +192,30 @@ def shorten_line(points, y_max):
         shortened_points.append((start_point, end_point))
 
     return shortened_points
+
+
+def resize_img(img):
+    """
+    Resizes image to a max width or height of 1000px
+    """
+    img = img.copy()
+    img_ht, img_wd, _ = img.shape
+
+    max_lenght = 1000
+
+    if img_wd >= img_ht:
+        ratio = img_wd / img_ht
+        new_width = 1000
+        new_height = math.ceil(new_width / ratio)
+
+    elif img_wd < img_ht:
+        ratio = img_ht / img_wd
+        new_height = 1000
+        new_width = math.ceil(new_height / ratio)
+
+    resized_image = cv2.resize(img, (new_width, new_height))
+
+    return resized_image
 
 
 def pil_image_to_opencv_image(pil_image):
