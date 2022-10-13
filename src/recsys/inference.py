@@ -5,19 +5,6 @@ from typing import List, Dict, OrderedDict, Tuple
 import numpy as np
 
 
-# Phase 0.5
-def title_to_asin(title: str) -> str:
-    """
-    Convert book title to its corresponding Amazon Standard Identification Number (ASIN).
-    Args:
-        title: Book title
-
-    Returns:
-         Amazon Standard Identification Number (ASIN)
-    """
-    return "<UNKNOWN>"
-
-
 def cosine_similarity(a: List[float], b: List[float]) -> float:
     return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
 
