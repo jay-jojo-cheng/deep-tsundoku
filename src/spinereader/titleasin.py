@@ -32,15 +32,15 @@ class TextToAsin:
         self.df = pd.read_csv(title_emb_path).dropna()
     
     def return_k_similar(self, query_embeddings, k=1):
-        top_k_titles = np.array([])
+        top_k_title_idx = np.array([])
         for query in query_embeddings:
             similarity_mat = cosine_similarity(query, self.reference_embeddings)
             similarity_score = similarity_mat[0]
             if k == 1:
-                top_k_titles = np.append(top_k_titles, np.argmax(similarity_score).reshape(1, -1))
+                top_k_title_idx = np.append(top_k_title_idx, np.argmax(similarity_score).reshape(1, -1))
             elif k is not None:
-                top_k_titles = np.append(top_k_titles, np.flip(similarity_score.argsort()[-k:][::1]).reshape(1, -1))
-        return top_k_titles
+                top_k_title_idx = np.append(top_k_title_idx, np.flip(similarity_score.argsort()[-k:][::1]).reshape(1, -1))
+        return top_k_title_idx
     
     # k is number of titles to extract
     def title_to_asin(self, query_strings, k=1) -> str:
