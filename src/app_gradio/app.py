@@ -14,6 +14,7 @@ from src.models.image_segmentation import crop_book_spines_in_image
 
 from src.spinereader.titleasin import TextToAsin
 from src.recsys.inference import BookEmbedding
+from collections import OrderedDict
 
 STAGED_MODEL_DIRNAME = (
     Path(__file__).resolve().parent.parent / "spinereader" / "artifacts"
@@ -43,7 +44,7 @@ def make_frontend(detection_fn: Callable[[Image], str], recommendation_fn: Calla
     
     def augmented_detection_fn(image, candidate_books):
         detected_books_string = detection_fn(image)
-        candidate_books = candidate_books + detected_books_string.split("\n") 
+        candidate_books = candidate_books + list(OrderedDict.fromkeys(detected_books_string.split("\n")))
         return {
             candidate_book_titles: candidate_books,
             output_box: detected_books_string

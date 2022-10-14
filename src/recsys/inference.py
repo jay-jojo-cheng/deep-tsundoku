@@ -78,9 +78,10 @@ class BookEmbedding:
             #                'avg': sum(scores) / len(scores),
             #                'raw': scores}
             candidate_dict[unseen] = max(scores)
-
-        print('hello!')
-        res = pd.DataFrame.from_dict(candidate_dict, orient='index', columns=['score'])
+      
+       
+        data = [(cand, candidate_dict[cand]) for cand in candidates]
+        res = pd.DataFrame.from_records(data, columns=['asin', 'score'])
         print(res)
         # return [k for k, v in sorted(candidate_dict.items(), key=lambda item:item[1])]
         return res
