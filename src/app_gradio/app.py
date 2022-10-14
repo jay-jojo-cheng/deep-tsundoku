@@ -3,6 +3,7 @@ import re
 from pathlib import Path
 from typing import Callable, List
 
+import pandas as pd
 import gradio as gr
 import torch
 from PIL.Image import Image
@@ -49,9 +50,13 @@ def make_frontend(detection_fn: Callable[[Image], str], recommendation_fn: Calla
         }
 
     def augmented_recommendation_fn(candidate_books, liked_books):
-        ordered_candidates = recommendation_fn(candidate_books, liked_books)
-        # print('these are ordered candidates')
-        # print(ordered_candidates)
+        scored_asins = recommendation_fn(candidate_books, liked_books)
+        scored_asins['title'] = candidate_books
+        scored_asins.sort_values(by=['score'], inplace=True, ascending=False)
+
+        ordered_candidates = list(scored_asins.title)
+        print('these are ordered candidates')
+        print(ordered_candidates)
         return {
             candidate_book_titles: candidate_books,
             rec_output_box: "\n".join(ordered_candidates)
@@ -175,9 +180,9 @@ class BookRecommender:
         # maybe use hash table to quickly look up noisy titles we have converted already
         candidate_book_asins = self.text_to_asin_converter.title_to_asin(candidate_book_titles)
         liked_book_asins = self.text_to_asin_converter.title_to_asin(liked_book_list)
-        ranked_asins = self.recommender.recommend(candidate_book_asins, liked_book_asins)
+        scored_asins = self.recommender.recommend(candidate_book_asins, liked_book_asins)
 
-        return self.text_to_asin_converter.asin_to_title(ranked_asins)
+        return scored_asins
 
 
 class BookSpineReader:
