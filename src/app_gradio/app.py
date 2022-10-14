@@ -42,9 +42,12 @@ def make_frontend(detection_fn: Callable[[Image], str], recommendation_fn: Calla
     ]
 
     
-    def augmented_detection_fn(image, candidate_books):
+    def augmented_detection_fn(image, save_image, candidate_books):
         detected_books_string = detection_fn(image)
-        candidate_books = candidate_books + list(OrderedDict.fromkeys(detected_books_string.split("\n")))
+        if save_image:
+            candidate_books = candidate_books + list(OrderedDict.fromkeys(detected_books_string.split("\n")))
+        else:
+            candidate_books = list(OrderedDict.fromkeys(detected_books_string.split("\n")))
         return {
             candidate_book_titles: candidate_books,
             output_box: detected_books_string
@@ -77,6 +80,7 @@ def make_frontend(detection_fn: Callable[[Image], str], recommendation_fn: Calla
             with gr.Row():
                 with gr.Column():
                     image = gr.Image(type="pil", label="Bookshelf")
+                    save_image = gr.Checkbox(label="Save previous detected books?")
                     gr.Examples(
                         examples=example_images,
                         inputs=image,
@@ -84,7 +88,7 @@ def make_frontend(detection_fn: Callable[[Image], str], recommendation_fn: Calla
                 output_box = gr.Textbox(label="Recognized books")
 
             find_books_button = gr.Button("Find books")
-            find_books_button.click(augmented_detection_fn, inputs=[image, candidate_book_titles], outputs=[candidate_book_titles, output_box])
+            find_books_button.click(augmented_detection_fn, inputs=[image, save_image, candidate_book_titles], outputs=[candidate_book_titles, output_box])
             # find_books_button.click(detection_fn, inputs=[image], outputs=[output_box])
 
             gr.Markdown("### Flag  wrong prediction 🐞")
