@@ -1,5 +1,8 @@
 # Deep Tsundoku
 
+
+![screenshot showing app with bookshelf image upload on the left, find books button on the bottom, and recognized books output on the right](app_screenshot.png)
+
 ## Vision
 
 Deep Tsundoku is a bookshelf app for augmenting the serendipity of physical book browsing with modern information retrieval.
@@ -32,6 +35,7 @@ Pull requests are welcome. For major changes, please open an issue first to disc
 Don't hesitate to ask for help!
 
 ## Roadmap
+- (misc) cleanup unused template files from project repo and reorganize directories
 - (phase 0) retrain title-author model on higher resolution
 - (phase 0) batch predictions from set of segmented images at inference time
 - (phase 0) adapt [synthdog](https://github.com/clovaai/donut/tree/master/synthdog) for creating synthetic bookspine images
