@@ -20,7 +20,7 @@ MODEL_FILE = "traced_donut_model_title_only.pt"
 def main():
     model_inference = BookSpineReader()
     frontend = make_frontend(model_inference.predict)
-    frontend.launch()
+    frontend.launch(share=True)
 
 
 def make_frontend(fn: Callable[[Image], str]):
