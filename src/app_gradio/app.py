@@ -54,6 +54,7 @@ def make_frontend(detection_fn: Callable[[Image], str], recommendation_fn: Calla
         }
 
     def augmented_recommendation_fn(candidate_books, liked_books):
+        print(liked_books) # testing that multiple input works
         scored_asins = recommendation_fn(candidate_books, liked_books)
         scored_asins['title'] = candidate_books
         scored_asins.sort_values(by=['score'], inplace=True, ascending=False)
@@ -119,7 +120,7 @@ def make_frontend(detection_fn: Callable[[Image], str], recommendation_fn: Calla
 
             with gr.Row():
                 with gr.Column():
-                    liked_book_titles = gr.Textbox(label="Input a book that you like",
+                    liked_book_titles = gr.Textbox(label="Input books that you like on separate lines",
                     lines=5
                     )
                     gr.Examples(["crime and punishment dostoevsky", "harry potter and the prisoner"], inputs=[liked_book_titles])
