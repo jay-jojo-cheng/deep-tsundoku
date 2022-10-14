@@ -1,9 +1,9 @@
 import os
 import re
+from collections import OrderedDict
 from pathlib import Path
 from typing import Callable, List
 
-import pandas as pd
 import gradio as gr
 import torch
 from PIL.Image import Image
@@ -11,10 +11,8 @@ from gradio import CSVLogger
 from transformers import DonutProcessor
 
 from src.models.image_segmentation import crop_book_spines_in_image
-
-from src.spinereader.titleasin import TextToAsin
 from src.recsys.inference import BookEmbedding
-from collections import OrderedDict
+from src.spinereader.titleasin import TextToAsin
 
 STAGED_MODEL_DIRNAME = (
     Path(__file__).resolve().parent.parent / "spinereader" / "artifacts"
@@ -26,12 +24,17 @@ def main():
     detection_inference = BookSpineReader()
     recommendation_inference = BookRecommender()
 
-    tabbed_pages = make_frontend(detection_inference.predict, recommendation_inference.recommend)
-    
+    tabbed_pages = make_frontend(
+        detection_inference.predict, recommendation_inference.recommend
+    )
+
     tabbed_pages.launch()
 
 
-def make_frontend(detection_fn: Callable[[Image], str], recommendation_fn: Callable[[List[str], List[str]], List[str]]):
+def make_frontend(
+    detection_fn: Callable[[Image], str],
+    recommendation_fn: Callable[[List[str], List[str]], List[str]],
+):
     """Creates a gradio.Interface frontend for an image to text function"""
     # List of example images
     images_dir = os.path.join(get_project_root(), "data/images")
@@ -41,38 +44,40 @@ def make_frontend(detection_fn: Callable[[Image], str], recommendation_fn: Calla
         if os.path.splitext(f)[1] in [".jpg", ".jpeg", ".png"]
     ]
 
-    
     def augmented_detection_fn(image, save_image, candidate_books):
         detected_books_string = detection_fn(image)
         if save_image:
-            candidate_books = candidate_books + list(OrderedDict.fromkeys(detected_books_string.split("\n")))
+            candidate_books = candidate_books + list(
+                OrderedDict.fromkeys(detected_books_string.split("\n"))
+            )
         else:
-            candidate_books = list(OrderedDict.fromkeys(detected_books_string.split("\n")))
+            candidate_books = list(
+                OrderedDict.fromkeys(detected_books_string.split("\n"))
+            )
         return {
             candidate_book_titles: candidate_books,
-            output_box: detected_books_string
+            output_box: detected_books_string,
         }
 
     def augmented_recommendation_fn(candidate_books, liked_books):
-        print(liked_books) # testing that multiple input works
+        print(liked_books)  # testing that multiple input works
         scored_asins = recommendation_fn(candidate_books, liked_books)
-        scored_asins['title'] = candidate_books
-        scored_asins.sort_values(by=['score'], inplace=True, ascending=False)
+        scored_asins["title"] = candidate_books
+        scored_asins.sort_values(by=["score"], inplace=True, ascending=False)
 
         ordered_candidates = list(scored_asins.title)
-        print('these are ordered candidates')
+        print("these are ordered candidates")
         print(ordered_candidates)
         return {
             candidate_book_titles: candidate_books,
-            rec_output_box: "\n".join(ordered_candidates)
+            rec_output_box: "\n".join(ordered_candidates),
         }
-    
 
     with gr.Blocks() as frontend:
         # candidate_book_titles = gr.State(["the adventures of huckleberry finn", "the great gatsby"]) # for debugging
-        candidate_book_titles = gr.State([]) # for debugging
-        
-        with gr.Tab("Detection"):
+        candidate_book_titles = gr.State([])  # for debugging
+
+        with gr.Tab("Book Detection"):
             gr.Markdown("# 📚 Deep Tsundoku: bookshelf app for book lovers")
             gr.Markdown(
                 "Upload images of your bookshelf to get the list of books it contains"
@@ -89,7 +94,11 @@ def make_frontend(detection_fn: Callable[[Image], str], recommendation_fn: Calla
                 output_box = gr.Textbox(label="Recognized books")
 
             find_books_button = gr.Button("Find books")
-            find_books_button.click(augmented_detection_fn, inputs=[image, save_image, candidate_book_titles], outputs=[candidate_book_titles, output_box])
+            find_books_button.click(
+                augmented_detection_fn,
+                inputs=[image, save_image, candidate_book_titles],
+                outputs=[candidate_book_titles, output_box],
+            )
             # find_books_button.click(detection_fn, inputs=[image], outputs=[output_box])
 
             gr.Markdown("### Flag  wrong prediction 🐞")
@@ -111,8 +120,8 @@ def make_frontend(detection_fn: Callable[[Image], str], recommendation_fn: Calla
                 preprocess=False,
                 queue=False,
             )
-        
-        with gr.Tab("Recommendation"):
+
+        with gr.Tab("Book Recommendation"):
             gr.Markdown("# 📚 Deep Tsundoku: bookshelf app for book lovers")
             gr.Markdown(
                 "Tell us some books you like and we will recommend books from the bookshelf"
@@ -120,16 +129,25 @@ def make_frontend(detection_fn: Callable[[Image], str], recommendation_fn: Calla
 
             with gr.Row():
                 with gr.Column():
-                    liked_book_titles = gr.Textbox(label="Input books that you like on separate lines",
-                    lines=5
+                    liked_book_titles = gr.Textbox(
+                        label="Input books that you like on separate lines", lines=5
                     )
-                    gr.Examples(["crime and punishment dostoevsky", "harry potter and the prisoner"], inputs=[liked_book_titles])
+                    gr.Examples(
+                        [
+                            "crime and punishment dostoevsky",
+                            "harry potter and the prisoner",
+                        ],
+                        inputs=[liked_book_titles],
+                    )
                 rec_output_box = gr.Textbox(label="Ranked books")
 
             rec_books_button = gr.Button("Recommend books")
             # rec_books_button.click(test_augmented_recommendation_fn, inputs=[used_letters_var], outputs=[used_letters_var, rec_output_box])
-            rec_books_button.click(augmented_recommendation_fn, inputs=[candidate_book_titles, liked_book_titles], outputs=[candidate_book_titles, rec_output_box])
-            
+            rec_books_button.click(
+                augmented_recommendation_fn,
+                inputs=[candidate_book_titles, liked_book_titles],
+                outputs=[candidate_book_titles, rec_output_box],
+            )
 
             gr.Markdown("### Flag poor recommendations 🐞")
             gr.Markdown(
@@ -177,16 +195,19 @@ class BookRecommender:
     def __init__(self):
         self.recommender = BookEmbedding()
         self.text_to_asin_converter = TextToAsin()
-    
 
     def recommend(self, candidate_book_titles: List[str], liked_book_titles: str):
         liked_book_list = liked_book_titles.split("\n")
 
         # TODO: cache conversion results so we don't need to convert every single time
         # maybe use hash table to quickly look up noisy titles we have converted already
-        candidate_book_asins = self.text_to_asin_converter.title_to_asin(candidate_book_titles)
+        candidate_book_asins = self.text_to_asin_converter.title_to_asin(
+            candidate_book_titles
+        )
         liked_book_asins = self.text_to_asin_converter.title_to_asin(liked_book_list)
-        scored_asins = self.recommender.recommend(candidate_book_asins, liked_book_asins)
+        scored_asins = self.recommender.recommend(
+            candidate_book_asins, liked_book_asins
+        )
 
         return scored_asins
 
