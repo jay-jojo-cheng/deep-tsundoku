@@ -28,7 +28,7 @@ def main():
         detection_inference.predict, recommendation_inference.recommend
     )
 
-    tabbed_pages.launch()
+    tabbed_pages.launch(share=True)
 
 
 def make_frontend(
