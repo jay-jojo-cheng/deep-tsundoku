@@ -5,6 +5,7 @@ from typing import List, Dict, OrderedDict, Tuple
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 
 
 REC_EMBEDDING_DIRNAME = Path(__file__).resolve().parent.parent.parent / "data"
@@ -78,4 +79,8 @@ class BookEmbedding:
             #                'raw': scores}
             candidate_dict[unseen] = max(scores)
 
-        return [k for k, v in sorted(candidate_dict.items(), key=lambda item:item[1])]
+        print('hello!')
+        res = pd.DataFrame.from_dict(candidate_dict, orient='index', columns=['score'])
+        print(res)
+        # return [k for k, v in sorted(candidate_dict.items(), key=lambda item:item[1])]
+        return res
