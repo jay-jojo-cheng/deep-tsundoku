@@ -11,6 +11,9 @@ from transformers import DonutProcessor
 
 from src.models.image_segmentation import crop_book_spines_in_image
 
+from src.spinereader.titleasin import TextToAsin
+from src.recsys.inference import BookEmbedding
+
 STAGED_MODEL_DIRNAME = (
     Path(__file__).resolve().parent.parent / "spinereader" / "artifacts"
 )
@@ -18,12 +21,15 @@ MODEL_FILE = "traced_donut_model_title_only.pt"
 
 
 def main():
-    model_inference = BookSpineReader()
-    frontend = make_frontend(model_inference.predict)
-    frontend.launch()
+    detection_inference = BookSpineReader()
+    recommendation_inference = BookRecommender()
+
+    tabbed_pages = make_frontend(detection_inference.predict, recommendation_inference.recommend)
+    
+    tabbed_pages.launch()
 
 
-def make_frontend(fn: Callable[[Image], str]):
+def make_frontend(detection_fn: Callable[[Image], str], recommendation_fn: Callable[[List[str], List[str]], List[str]]):
     """Creates a gradio.Interface frontend for an image to text function"""
     # List of example images
     images_dir = os.path.join(get_project_root(), "data/images")
@@ -33,43 +39,108 @@ def make_frontend(fn: Callable[[Image], str]):
         if os.path.splitext(f)[1] in [".jpg", ".jpeg", ".png"]
     ]
 
+    
+    def augmented_detection_fn(image, candidate_books):
+        detected_books_string = detection_fn(image)
+        candidate_books = candidate_books + detected_books_string.split("\n") 
+        return {
+            candidate_book_titles: candidate_books,
+            output_box: detected_books_string
+        }
+
+    def augmented_recommendation_fn(candidate_books, liked_books):
+        ordered_candidates = recommendation_fn(candidate_books, liked_books)
+        # print('these are ordered candidates')
+        # print(ordered_candidates)
+        return {
+            candidate_book_titles: candidate_books,
+            rec_output_box: "\n".join(ordered_candidates)
+        }
+    
+
     with gr.Blocks() as frontend:
-        gr.Markdown("# 📚 Deep Tsundoku: bookshelf app for book lovers")
-        gr.Markdown(
-            "Upload images of your bookshelf to get the list of books it contains"
-        )
+        # candidate_book_titles = gr.State(["the adventures of huckleberry finn", "the great gatsby"]) # for debugging
+        candidate_book_titles = gr.State([]) # for debugging
+        
+        with gr.Tab("Detection"):
+            gr.Markdown("# 📚 Deep Tsundoku: bookshelf app for book lovers")
+            gr.Markdown(
+                "Upload images of your bookshelf to get the list of books it contains"
+            )
 
-        with gr.Row():
-            with gr.Column():
-                image = gr.Image(type="pil", label="Bookshelf")
-                gr.Examples(
-                    examples=example_images,
-                    inputs=image,
-                )
-            output = gr.Textbox(label="Recognized books")
+            with gr.Row():
+                with gr.Column():
+                    image = gr.Image(type="pil", label="Bookshelf")
+                    gr.Examples(
+                        examples=example_images,
+                        inputs=image,
+                    )
+                output_box = gr.Textbox(label="Recognized books")
 
-        run_button = gr.Button("Find books")
-        run_button.click(fn, inputs=image, outputs=output)
+            find_books_button = gr.Button("Find books")
+            find_books_button.click(augmented_detection_fn, inputs=[image, candidate_book_titles], outputs=[candidate_book_titles, output_box])
+            # find_books_button.click(detection_fn, inputs=[image], outputs=[output_box])
 
-        gr.Markdown("### Flag  wrong prediction 🐞")
-        gr.Markdown(
-            "Are the books incorrect? Help us improve our model by correcting our mistakes!"
-        )
-        user_feedback = gr.Textbox(interactive=True, label="User feedback")
+            gr.Markdown("### Flag  wrong prediction 🐞")
+            gr.Markdown(
+                "Are the books incorrect? Help us improve our model by correcting our mistakes!"
+            )
+            detect_user_feedback = gr.Textbox(interactive=True, label="User feedback")
 
-        # Log user feedback
-        flag_button = gr.Button("Correct predictions")
-        flagging_callback = CSVLogger()
-        flag_components = [image, output, user_feedback]
-        flagging_callback.setup(flag_components, "user_feedback")
-        flag_method = FlagMethod(flagging_callback)
-        flag_button.click(
-            flag_method,
-            inputs=flag_components,
-            outputs=[],
-            preprocess=False,
-            queue=False,
-        )
+            # Log user feedback
+            detect_flag_button = gr.Button("Correct predictions")
+            detect_flagging_callback = CSVLogger()
+            detect_flag_components = [image, output_box, detect_user_feedback]
+            detect_flagging_callback.setup(detect_flag_components, "user_feedback")
+            detect_flag_method = FlagMethod(detect_flagging_callback)
+            detect_flag_button.click(
+                detect_flag_method,
+                inputs=detect_flag_components,
+                outputs=[],
+                preprocess=False,
+                queue=False,
+            )
+        
+        with gr.Tab("Recommendation"):
+            gr.Markdown("# 📚 Deep Tsundoku: bookshelf app for book lovers")
+            gr.Markdown(
+                "Tell us some books you like and we will recommend books from the bookshelf"
+            )
+
+            with gr.Row():
+                with gr.Column():
+                    liked_book_titles = gr.Textbox(label="Input a book that you like",
+                    lines=5
+                    )
+                    gr.Examples(["crime and punishment dostoevsky", "harry potter and the prisoner"], inputs=[liked_book_titles])
+                rec_output_box = gr.Textbox(label="Ranked books")
+
+            rec_books_button = gr.Button("Recommend books")
+            # rec_books_button.click(test_augmented_recommendation_fn, inputs=[used_letters_var], outputs=[used_letters_var, rec_output_box])
+            rec_books_button.click(augmented_recommendation_fn, inputs=[candidate_book_titles, liked_book_titles], outputs=[candidate_book_titles, rec_output_box])
+            
+
+            gr.Markdown("### Flag poor recommendations 🐞")
+            gr.Markdown(
+                "Are the recommended books not to your liking? Help us improve our model by correcting our mistakes!"
+            )
+            rec_user_feedback = gr.Textbox(interactive=True, label="User feedback")
+
+            # Log user feedback
+            rec_flag_button = gr.Button("Correct predictions")
+            rec_flagging_callback = CSVLogger()
+            rec_flag_components = [liked_book_titles, rec_output_box, rec_user_feedback]
+            rec_flagging_callback.setup(rec_flag_components, "user_feedback")
+            rec_flag_method = FlagMethod(rec_flagging_callback)
+            rec_flag_button.click(
+                rec_flag_method,
+                inputs=rec_flag_components,
+                outputs=[],
+                preprocess=False,
+                queue=False,
+            )
+
+    # tabbed_pages = gr.TabbedInterface([detection_frontend, recommendation_frontend], ["What books are on the bookshelf?", "What book should I read?"])
 
     return frontend
 
@@ -84,6 +155,29 @@ class FlagMethod:
 
     def __call__(self, *flag_data):
         self.flagging_callback.flag(flag_data, flag_option=self.flag_option)
+
+
+class BookRecommender:
+    """
+    Uses the embeddings, candidate book titles (detected from bookshelves), and liked book
+    titles (user input) to make recommendations.
+    """
+
+    def __init__(self):
+        self.recommender = BookEmbedding()
+        self.text_to_asin_converter = TextToAsin()
+    
+
+    def recommend(self, candidate_book_titles: List[str], liked_book_titles: str):
+        liked_book_list = liked_book_titles.split("\n")
+
+        # TODO: cache conversion results so we don't need to convert every single time
+        # maybe use hash table to quickly look up noisy titles we have converted already
+        candidate_book_asins = self.text_to_asin_converter.title_to_asin(candidate_book_titles)
+        liked_book_asins = self.text_to_asin_converter.title_to_asin(liked_book_list)
+        ranked_asins = self.recommender.recommend(candidate_book_asins, liked_book_asins)
+
+        return self.text_to_asin_converter.asin_to_title(ranked_asins)
 
 
 class BookSpineReader:
