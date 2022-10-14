@@ -28,7 +28,7 @@ def main():
         detection_inference.predict, recommendation_inference.recommend
     )
 
-    tabbed_pages.launch()
+    tabbed_pages.launch(share=True)
 
 
 def make_frontend(
@@ -231,7 +231,11 @@ class BookSpineReader:
 
     @staticmethod
     def _post_process_output(model_output: List[str]) -> str:
-        model_output_clean = [s for s in model_output if len(s) > 0]
+        model_output_clean = [
+            s
+            for s in model_output
+            if len(s) > 0 and s != "The Official Game Guide to the World"
+        ]
         if len(model_output_clean) == 0:
             return "No book found in the image 😞 Make sure the books are stacked vertically"
         else:
