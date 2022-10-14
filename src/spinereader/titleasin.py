@@ -30,6 +30,7 @@ class TextToAsin:
         if product_emb_path is None:
             title_emb_path = DATA_DIRNAME / books_csv_file
         self.df = pd.read_csv(title_emb_path).dropna()
+        self.asin_title_dict = pd.Series(self.df.title.values, index=self.df.asin).to_dict()
     
     def return_k_similar(self, query_embeddings, k=1):
         top_k_title_idx = np.array([])
@@ -47,6 +48,8 @@ class TextToAsin:
         query_embeddings = [self.model.encode([s]) for s in query_strings]
         similar_item_idx = self.return_k_similar(query_embeddings, k)
         # df.iloc[similar_item_idx, ][['asin', 'processed_titles']] # look at titles for debugging
-        return df.iloc[similar_item_idx, ]['asin'].tolist()
+        return self.df.iloc[similar_item_idx, ]['asin'].tolist()
 
 
+    def asin_to_title(self, asin_strings) -> str:
+        return [self.asin_title_dict[asin] for asin in asin_strings]
