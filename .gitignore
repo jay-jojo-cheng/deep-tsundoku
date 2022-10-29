@@ -34,9 +34,9 @@ data/images/*
 !data/images/zidane.jpg
 !data/images/bus.jpg
 !data/*.sh
-!data/images/book_spine_sample.jpg
-!data/images/Good-Book-Spines.jpg
-!data/images/single_book.jpg
+!data/images/canada.jpg
+!data/images/popular.jpg
+!data/images/technical.jpg
 !segmentation/images
 !segmentation/images/IMG_1770.jpg
 !segmentation/images/IMG_1778_0.jpg

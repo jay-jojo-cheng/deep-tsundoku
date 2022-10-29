@@ -2,8 +2,14 @@ import gzip
 import pickle
 from typing import List, Dict, OrderedDict, Tuple
 
-import numpy as np
+from pathlib import Path
 
+import numpy as np
+import pandas as pd
+
+
+REC_EMBEDDING_DIRNAME = Path(__file__).resolve().parent.parent.parent / "data"
+REC_EMBEDDING_FILE = "asin2emb"
 
 def cosine_similarity(a: List[float], b: List[float]) -> float:
     return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
@@ -11,7 +17,9 @@ def cosine_similarity(a: List[float], b: List[float]) -> float:
 
 class BookEmbedding:
 
-    def __init__(self, emb_path):
+    def __init__(self, emb_path=None):
+        if emb_path is None:
+            emb_path = REC_EMBEDDING_DIRNAME / REC_EMBEDDING_FILE
         with gzip.open(emb_path, 'rb') as f:
             self.asin2emb = pickle.load(f)
 
@@ -62,13 +70,18 @@ class BookEmbedding:
         Returns:
 
         """
-        out = {}
+        candidate_dict = {}
         for unseen in candidates:
             scores = self._get_scores(unseen, saved)
-            out[unseen] = {'max': max(scores),
-                           'most_similar_in_saved': saved[scores.index(max(scores))],
-                           'avg': sum(scores) / len(scores),
-                           'raw': scores}
-
-        return sorted(list(out.items()), key=lambda x: -x[1][by])
-
+            # candidate_dict[unseen] = {'max': max(scores),
+            #                'most_similar_in_saved': saved[scores.index(max(scores))],
+            #                'avg': sum(scores) / len(scores),
+            #                'raw': scores}
+            candidate_dict[unseen] = max(scores)
+      
+       
+        data = [(cand, candidate_dict[cand]) for cand in candidates]
+        res = pd.DataFrame.from_records(data, columns=['asin', 'score'])
+        print(res)
+        # return [k for k, v in sorted(candidate_dict.items(), key=lambda item:item[1])]
+        return res
