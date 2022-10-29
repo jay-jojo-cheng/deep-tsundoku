@@ -47,6 +47,10 @@ data/images/*
 
 results*.csv
 
+src/spinereader/artifacts/
+data/asin2emb
+data/books_emb_8_tidy.csv
+
 # Datasets -------------------------------------------------------------------------------------------------------------
 coco/
 coco128/
