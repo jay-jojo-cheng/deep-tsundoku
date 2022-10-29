@@ -21,7 +21,9 @@ cd deep-tsundoku
 # install project requirements into your virtual environment
 pip install -r requirements.txt --upgrade
 
-# placeholder for getting model artifacts
+# get trained model artifacts (warning takes a few minutes to download)
+chmod +x setup.sh
+./setup.sh
 
 # launch application
 python -m src.app_gradio.app
